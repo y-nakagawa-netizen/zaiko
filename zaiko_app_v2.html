@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>在庫管理システム v2</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --ca:#185FA5;--cal:#E6F1FB;--cad:#0C447C;
+  --cd:#E24B4A;--cdl:#FCEBEB;--cdd:#791F1F;
+  --cs:#3B6D11;--csl:#EAF3DE;
+  --cw:#BA7517;--cwl:#FAEEDA;
+  --cp:#6B3FA0;--cpl:#F0EBFA;
+  --bg:#F5F6F8;--surface:#FFFFFF;
+  --text:#1A1A1A;--text2:#6B7280;--text3:#9CA3AF;
+  --border:#E5E7EB;--border2:#D1D5DB;
+  --radius:10px;--radius-lg:16px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:430px;margin:0 auto;position:relative;overflow-x:hidden}
+
+/* TOPBAR */
+.topbar{background:var(--ca);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20;min-height:50px}
+.topbar h1{font-size:17px;font-weight:600;flex:1}
+.tbk{background:none;border:none;color:#fff;font-size:0;cursor:pointer;padding:4px;line-height:1;display:flex;align-items:center}
+.tbk svg{width:22px;height:22px}
+.tbk.hidden{display:none}
+.uchip{background:rgba(255,255,255,0.2);border-radius:20px;padding:4px 10px;font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap}
+.uchip svg{width:13px;height:13px}
+
+/* SCREENS */
+.screen{display:none;padding-bottom:80px}
+.screen.show{display:block}
+#s-login{padding-bottom:0;min-height:100vh}
+
+/* BOTTOM NAV */
+.botnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:flex;background:var(--surface);border-top:1px solid var(--border);z-index:20}
+.botnav button{flex:1;padding:10px 0 8px;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text2);font-size:10px;font-family:inherit}
+.botnav button.active{color:var(--ca)}
+.botnav button svg{width:22px;height:22px}
+
+/* LOGIN */
+.login-hero{background:var(--ca);padding:36px 24px 28px;text-align:center;color:#fff}
+.login-logo{width:60px;height:60px;background:rgba(255,255,255,0.2);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.login-logo svg{width:34px;height:34px}
+.login-hero h2{font-size:21px;font-weight:700;margin-bottom:4px}
+.login-hero p{font-size:13px;opacity:0.8}
+.login-body{padding:20px 18px}
+.flbl{font-size:12px;color:var(--text2);margin-bottom:8px;font-weight:600;display:block;letter-spacing:0.03em}
+.staff-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.sbtn{padding:13px 10px;border:1.5px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);cursor:pointer;text-align:center;font-family:inherit;transition:all 0.15s}
+.sbtn.sel{border-color:var(--ca);background:var(--cal)}
+.sbtn .av{width:38px;height:38px;border-radius:50%;margin:0 auto 7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff}
+.sbtn .sn{font-size:13px;font-weight:600}
+.sbtn .sr{font-size:11px;color:var(--text2);margin-top:2px}
+.pin-wrap{display:none}
+.pin-dots{display:flex;gap:14px;justify-content:center;margin-bottom:18px}
+.pdot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);transition:all 0.15s}
+.pdot.on{background:var(--ca);border-color:var(--ca)}
+.pdot.err{background:var(--cd);border-color:var(--cd);animation:shk 0.3s}
+@keyframes shk{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.kpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kbtn{padding:15px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);font-size:22px;font-weight:500;cursor:pointer;font-family:inherit;color:var(--text);transition:background 0.1s;text-align:center}
+.kbtn:active{background:var(--bg)}
+.kbtn.del{font-size:17px;color:var(--text2)}
+.kbtn.emp{background:none;border:none;cursor:default}
+.lerr{background:var(--cdl);color:var(--cdd);padding:10px;border-radius:var(--radius);font-size:13px;text-align:center;margin-bottom:12px;display:none}
+.lerr.show{display:block}
+
+/* LIST */
+.sbar{padding:10px 14px 8px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:50px;z-index:10}
+.swrap{position:relative}
+.swrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text3);pointer-events:none}
+.swrap input{width:100%;padding:9px 12px 9px 32px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:14px;font-family:inherit}
+.swrap input:focus{outline:none;border-color:var(--ca)}
+.frow{display:flex;gap:6px;padding:8px 14px;overflow-x:auto;background:var(--surface);border-bottom:1px solid var(--border)}
+.frow::-webkit-scrollbar{display:none}
+.chip{padding:6px 13px;border-radius:20px;font-size:12px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;white-space:nowrap;font-family:inherit}
+.chip.active{background:var(--cal);border-color:var(--ca);color:var(--cad);font-weight:600}
+.icard{display:flex;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);background:var(--surface);cursor:pointer;gap:11px;transition:background 0.1s}
+.icard:active{background:var(--bg)}
+.iico{width:40px;height:40px;border-radius:var(--radius);background:var(--cal);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.iico svg{width:20px;height:20px;color:var(--ca)}
+.iinfo{flex:1;min-width:0}
+.icode{font-size:11px;color:var(--text2);margin-bottom:1px}
+.iname{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.irev{font-size:11px;color:var(--text3);margin-top:1px}
+.iloc{font-size:11px;color:var(--text3);margin-top:2px}
+.iright{text-align:right;flex-shrink:0}
+.snum{font-size:22px;font-weight:700;line-height:1}
+.snum.ok{color:var(--cs)}.snum.warn{color:var(--cw)}.snum.danger{color:var(--cd)}
+.sunit{font-size:11px;color:var(--text3)}
+.qship{margin-top:4px;background:var(--ca);color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:500}
+.flag-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--cd);margin-left:4px;vertical-align:middle}
+
+/* SCAN */
+.sarea{padding:14px}
+.scan-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.scan-mini{background:var(--cal);border:1px solid var(--ca);border-radius:var(--radius);padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;transition:background 0.1s}
+.scan-mini:active{background:#cce0f5}
+.scan-mini svg{width:22px;height:22px;color:var(--ca);flex-shrink:0}
+.scan-mini .sm-text{font-size:13px;font-weight:600;color:var(--cad)}
+.scan-mini .sm-sub{font-size:11px;color:var(--text2)}
+.ocr-mini{background:var(--cpl);border:1px solid var(--cp);border-radius:var(--radius);padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;transition:background 0.1s}
+.ocr-mini:active{background:#ddd0f5}
+.ocr-mini svg{width:22px;height:22px;color:var(--cp);flex-shrink:0}
+.ocr-mini .sm-text{font-size:13px;font-weight:600;color:var(--cp)}
+.ocr-mini .sm-sub{font-size:11px;color:var(--text2)}
+.scan-ok{background:var(--csl);border:1px solid #97C459;border-radius:var(--radius);padding:9px 12px;display:none;margin-bottom:12px;font-size:13px;color:var(--cs);align-items:center;gap:6px}
+.scan-ok.show{display:flex}
+.scan-ok svg{width:15px;height:15px;flex-shrink:0}
+.fgrp{margin-bottom:12px}
+.finput{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:15px;background:var(--bg);color:var(--text);font-family:inherit}
+.finput:focus{outline:none;border-color:var(--ca)}
+.finput.ro{color:var(--text2)}
+.seg{display:flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px}
+.segb{flex:1;padding:11px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:600;color:var(--text2);font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px;transition:background 0.1s}
+.segb svg{width:16px;height:16px}
+.segb.active.out{background:var(--ca);color:#fff}
+.segb.active.in{background:var(--cs);color:#fff}
+.qty-disp{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px;text-align:center;margin-bottom:10px}
+.qty-disp .qn{font-size:40px;font-weight:700;color:var(--ca);line-height:1}
+.qty-disp .ql{font-size:11px;color:var(--text3);margin-top:3px}
+.tenkey{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
+.tk{padding:14px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);font-size:22px;font-weight:500;cursor:pointer;font-family:inherit;color:var(--text);transition:all 0.1s;text-align:center}
+.tk:active{background:var(--bg);transform:scale(0.96)}
+.tk.del{font-size:17px;color:var(--text2);background:var(--bg)}
+.tk.zero{grid-column:span 2}
+.tk.clr{background:var(--cdl);color:var(--cd);font-size:13px;font-weight:700}
+.subbtn{width:100%;padding:14px;border:none;border-radius:var(--radius-lg);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;color:#fff;font-family:inherit}
+.subbtn:active{opacity:0.88}
+.subbtn.out{background:var(--ca)}.subbtn.in{background:var(--cs)}
+.subbtn svg{width:18px;height:18px}
+.back-link{display:flex;align-items:center;gap:4px;color:var(--text2);font-size:13px;background:none;border:none;cursor:pointer;font-family:inherit;padding:0 0 12px;font-weight:500}
+.back-link svg{width:16px;height:16px}
+
+/* DETAIL */
+.dhdr{background:var(--surface);padding:14px;border-bottom:1px solid var(--border)}
+.dcode{font-size:11px;color:var(--ca);margin-bottom:3px;font-weight:600}
+.dname{font-size:20px;font-weight:700}
+.dmodel{font-size:13px;color:var(--text2);margin-top:2px}
+.drev{font-size:13px;color:var(--cp);font-weight:600;margin-top:4px}
+.dsbig{margin-top:12px;display:flex;align-items:flex-end;gap:16px}
+.dsbig .sblock{text-align:left}
+.dsbig .slbl{font-size:11px;color:var(--text3);margin-bottom:2px}
+.dsbig .sval{font-size:44px;font-weight:700;line-height:1}
+.abanner{padding:9px 14px;font-size:13px;display:flex;align-items:center;gap:7px;font-weight:500}
+.abanner.warn{background:var(--cwl);color:var(--cw)}
+.abanner.danger{background:var(--cdl);color:var(--cd)}
+.abanner svg{width:16px;height:16px;flex-shrink:0}
+.dsec{padding:14px;background:var(--surface);margin-top:8px}
+.stitle{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px}
+.irow{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px}
+.irow:last-child{border:none}
+.ilbl{color:var(--text2)}.ival{font-weight:600;display:flex;align-items:center;gap:6px}
+.edit-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--text2);cursor:pointer;font-family:inherit}
+.arow{display:flex;gap:10px;padding:14px;background:var(--surface);margin-top:8px}
+.abtn{flex:1;padding:12px;border:none;border-radius:var(--radius-lg);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit}
+.abtn svg{width:16px;height:16px}
+.abtn.ship{background:var(--ca);color:#fff}.abtn.recv{background:var(--csl);color:var(--cs)}
+.hrow{display:flex;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);gap:7px}
+.hrow:last-child{border:none}
+.hbadge{padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;flex-shrink:0}
+.hbadge.out{background:var(--cdl);color:var(--cd)}.hbadge.in{background:var(--csl);color:var(--cs)}
+.hinfo{flex:1;min-width:0}
+.hperson{font-weight:600;font-size:12px}
+.horder{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hqty{font-weight:700;font-size:13px;flex-shrink:0}
+.hdate{font-size:11px;color:var(--text3);flex-shrink:0}
+
+/* SUMMARY */
+.sgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:14px}
+.scard{background:var(--surface);border-radius:var(--radius-lg);padding:14px;text-align:center;border:1px solid var(--border)}
+.scard .sl{font-size:11px;color:var(--text2);margin-bottom:6px;font-weight:600}
+.scard .sv{font-size:30px;font-weight:700}
+.sv.ok{color:var(--cs)}.sv.danger{color:var(--cd)}.sv.warn{color:var(--cw)}
+.aitem{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius);margin-bottom:8px;cursor:pointer}
+.aitem.danger{background:var(--cdl)}.aitem.warn{background:var(--cwl)}.aitem.purple{background:var(--cpl)}
+.aitem svg{width:18px;height:18px;flex-shrink:0}
+.aitem.danger svg{color:var(--cd)}.aitem.warn svg{color:var(--cw)}.aitem.purple svg{color:var(--cp)}
+.an{font-size:14px;font-weight:600}.as{font-size:12px;margin-top:2px}
+.aitem.danger .as{color:var(--cd)}.aitem.warn .as{color:var(--cw)}.aitem.purple .as{color:var(--cp)}
+
+/* ADMIN */
+.admin-sec{padding:14px}
+.admin-card{background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);overflow:hidden;margin-bottom:14px}
+.acard-head{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.acard-head button{background:var(--ca);color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.staff-row{display:flex;align-items:center;padding:11px 14px;border-bottom:1px solid var(--border);gap:10px}
+.staff-row:last-child{border:none}
+.av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.sinfo{flex:1}.sname2{font-size:14px;font-weight:600}.srole2{font-size:11px;color:var(--text2);margin-top:1px}
+.sdel{padding:4px 10px;border:1px solid var(--cd);border-radius:8px;font-size:11px;color:var(--cd);cursor:pointer;background:none;font-family:inherit}
+.prod-admin-row{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:8px;font-size:13px}
+.prod-admin-row:last-child{border:none}
+.pan{flex:1;font-weight:500}.pst{font-weight:700;min-width:28px;text-align:right}
+.pbase{font-size:11px;color:var(--text2);margin-left:4px}
+.pflag-btn{padding:4px 8px;border-radius:8px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600;border:none}
+.pflag-btn.set{background:var(--cdl);color:var(--cd)}
+.pflag-btn.unset{background:var(--bg);color:var(--text2);border:1px solid var(--border)}
+
+/* POPUPS / MODALS */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:50;display:none;align-items:flex-end;justify-content:center}
+.overlay.show{display:flex}
+.popup{background:var(--surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;width:100%;max-width:430px;padding:22px 18px 30px;animation:sup 0.28s cubic-bezier(0.34,1.1,0.64,1)}
+@keyframes sup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.pop-icon{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.pop-icon.red{background:var(--cdl)}.pop-icon.red svg{color:var(--cd)}
+.pop-icon.orange{background:var(--cwl)}.pop-icon.orange svg{color:var(--cw)}
+.pop-icon.purple{background:var(--cpl)}.pop-icon.purple svg{color:var(--cp)}
+.pop-icon svg{width:28px;height:28px}
+.pop-title{font-size:18px;font-weight:700;text-align:center;margin-bottom:7px}
+.pop-sub{font-size:14px;text-align:center;color:var(--text2);line-height:1.65;margin-bottom:16px;white-space:pre-wrap}
+.pop-nums{display:flex;justify-content:center;gap:24px;background:var(--bg);border-radius:var(--radius);padding:12px;margin-bottom:18px}
+.pnum{text-align:center}.pnum .pv{font-size:26px;font-weight:700}.pnum .pl{font-size:11px;color:var(--text2);margin-top:3px}
+.pv.danger{color:var(--cd)}.pv.warn{color:var(--cw)}.pv.ok{color:var(--cs)}
+.pdiv{color:var(--text3);font-size:20px;align-self:center}
+.pbtn{width:100%;padding:13px;border:none;border-radius:var(--radius-lg);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:8px}
+.pbtn svg{width:16px;height:16px}
+.pbtn.red{background:var(--cd);color:#fff}.pbtn.orange{background:var(--cw);color:#fff}
+.pbtn.purple{background:var(--cp);color:#fff}
+.pbtn.ok{background:var(--cs);color:#fff}
+.pbtn.sec{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+
+/* MODALS */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:60;display:none;align-items:center;justify-content:center;padding:18px}
+.modal-ov.show{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:390px;padding:18px;animation:fdin 0.2s}
+@keyframes fdin{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:scale(1)}}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:14px}
+.mfgrp{margin-bottom:12px}
+.mflbl{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px;display:block}
+.mfinput{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:15px;font-family:inherit}
+.mfinput:focus{outline:none;border-color:var(--ca)}
+.role-row{display:flex;gap:8px}
+.rbtn{flex:1;padding:9px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;background:var(--surface)}
+.rbtn.active{background:var(--cal);border-color:var(--ca);color:var(--cad);font-weight:700}
+.color-row{display:flex;gap:7px;flex-wrap:wrap}
+.col-opt{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:border-color 0.15s}
+.col-opt.sel{border-color:var(--text)}
+.mbtns{display:flex;gap:8px;margin-top:16px}
+.mbtns button{flex:1;padding:11px;border:none;border-radius:var(--radius);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.mok{background:var(--ca);color:#fff}.mcancel{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+
+/* INLINE EDIT */
+.inline-edit{display:none;margin-top:6px}
+.inline-edit.show{display:flex;gap:6px}
+.inline-edit input{flex:1;padding:8px 10px;border:1px solid var(--ca);border-radius:var(--radius);font-size:14px;font-family:inherit}
+.inline-edit button{padding:8px 12px;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.isave{background:var(--ca);color:#fff}.icancel2{background:var(--bg);border:1px solid var(--border);color:var(--text2)}
+
+/* TOAST */
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(20px);color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;opacity:0;transition:all 0.25s;pointer-events:none;white-space:nowrap;z-index:80}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{background:#27500A}.toast.w{background:#633806}.toast.e{background:#791F1F}
+
+.empty-state{padding:32px 24px;text-align:center;color:var(--text3);font-size:14px}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar" id="topbar">
+  <button class="tbk hidden" id="bkBtn" onclick="goBack()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+  </button>
+  <h1 id="ttl">在庫管理</h1>
+  <div class="uchip hidden" id="uchip" onclick="openLogout()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    <span id="uname"></span>
+  </div>
+</div>
+
+<!-- ===== LOGIN ===== -->
+<div class="screen show" id="s-login">
+  <div class="login-hero">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+    </div>
+    <h2>在庫管理システム</h2>
+    <p>担当者を選んでPINを入力してください</p>
+  </div>
+  <div class="login-body">
+    <label class="flbl">担当者を選択</label>
+    <div class="staff-grid" id="staffGrid">
+      <button class="sbtn" id="sb-1" onclick="selStaffFn(1)">
+        <div class="av" style="background:#185FA5">山太</div>
+        <div class="sn">山田 太郎</div><div class="sr">管理者</div>
+      </button>
+      <button class="sbtn" id="sb-2" onclick="selStaffFn(2)">
+        <div class="av" style="background:#3B6D11">鈴花</div>
+        <div class="sn">鈴木 花子</div><div class="sr">作業者</div>
+      </button>
+      <button class="sbtn" id="sb-3" onclick="selStaffFn(3)">
+        <div class="av" style="background:#BA7517">田一</div>
+        <div class="sn">田中 一郎</div><div class="sr">作業者</div>
+      </button>
+    </div>
+    <div class="pin-wrap" id="pinWrap">
+      <label class="flbl" id="pinLbl">PINコードを入力</label>
+      <div class="lerr" id="lerr">PINが違います。もう一度入力してください。</div>
+      <div class="pin-dots" id="pinDots">
+        <div class="pdot" id="pd0"></div><div class="pdot" id="pd1"></div>
+        <div class="pdot" id="pd2"></div><div class="pdot" id="pd3"></div>
+      </div>
+      <div class="kpad">
+        <button class="kbtn" onclick="pk('1')">1</button><button class="kbtn" onclick="pk('2')">2</button><button class="kbtn" onclick="pk('3')">3</button>
+        <button class="kbtn" onclick="pk('4')">4</button><button class="kbtn" onclick="pk('5')">5</button><button class="kbtn" onclick="pk('6')">6</button>
+        <button class="kbtn" onclick="pk('7')">7</button><button class="kbtn" onclick="pk('8')">8</button><button class="kbtn" onclick="pk('9')">9</button>
+        <button class="kbtn emp"></button><button class="kbtn" onclick="pk('0')">0</button><button class="kbtn del" onclick="pdel()">⌫</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== LIST ===== -->
+<div class="screen" id="s-list">
+  <div class="sbar">
+    <div class="swrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="製品番号・品名で検索" id="sinput" oninput="filt()">
+    </div>
+  </div>
+  <div class="frow">
+    <button class="chip active" onclick="setF('all',this)">すべて</button>
+    <button class="chip" onclick="setF('danger',this)">要発注</button>
+    <button class="chip" onclick="setF('warn',this)">注意</button>
+    <button class="chip" onclick="setF('ok',this)">正常</button>
+  </div>
+  <div id="ilist"></div>
+</div>
+
+<!-- ===== SCAN ===== -->
+<div class="screen" id="s-scan">
+  <div class="sarea">
+    <button class="back-link" onclick="goBack()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      一覧に戻る
+    </button>
+    <div class="scan-row">
+      <div class="scan-mini" onclick="doScan()" role="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M17 17v3h3M14 17h.01M20 14h.01"/></svg>
+        <div><div class="sm-text">QRスキャン</div><div class="sm-sub">棚のQRを読み取る</div></div>
+      </div>
+      <div class="ocr-mini" onclick="doOCR()" role="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h2M7 12h4M7 16h6"/><path d="M15 12l2 2 4-4"/></svg>
+        <div><div class="sm-text">現品票照合</div><div class="sm-sub">カメラで読み取り</div></div>
+      </div>
+    </div>
+    <div class="scan-ok" id="sres">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <span id="sresText"></span>
+    </div>
+    <div class="fgrp">
+      <label class="flbl">製品番号</label>
+      <input class="finput ro" id="fc" readonly placeholder="スキャンで自動入力">
+    </div>
+    <div class="fgrp">
+      <label class="flbl">品名 / 保管場所</label>
+      <input class="finput ro" id="fn" readonly placeholder="スキャンで自動入力">
+    </div>
+    <div class="seg">
+      <button class="segb out active" id="seg-out" onclick="setSeg('out')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>出庫
+      </button>
+      <button class="segb in" id="seg-in" onclick="setSeg('in')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>入庫
+      </button>
+    </div>
+    <div class="fgrp" id="orderGrp">
+      <label class="flbl">オーダー番号</label>
+      <input class="finput" id="forder" placeholder="例: E1S2150" maxlength="20" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+    </div>
+    <div class="fgrp" id="deliveryGrp">
+      <label class="flbl">納期</label>
+      <div style="display:flex;gap:8px">
+        <input type="date" class="finput" id="fdate" style="flex:1">
+        <select class="finput" id="fampm" style="width:90px">
+          <option value="AM">午前</option>
+          <option value="PM">午後</option>
+        </select>
+      </div>
+    </div>
+    <div class="fgrp">
+      <label class="flbl">数量</label>
+      <div class="qty-disp"><div class="qn" id="qnum">1</div><div class="ql">個</div></div>
+      <div class="tenkey">
+        <button class="tk" onclick="tp('1')">1</button><button class="tk" onclick="tp('2')">2</button><button class="tk" onclick="tp('3')">3</button>
+        <button class="tk" onclick="tp('4')">4</button><button class="tk" onclick="tp('5')">5</button><button class="tk" onclick="tp('6')">6</button>
+        <button class="tk" onclick="tp('7')">7</button><button class="tk" onclick="tp('8')">8</button><button class="tk" onclick="tp('9')">9</button>
+        <button class="tk clr" onclick="tc()">C</button><button class="tk zero" onclick="tp('0')">0</button><button class="tk del" onclick="td()">⌫</button>
+      </div>
+    </div>
+    <button class="subbtn out" id="subbtn" onclick="submitForm()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <span id="sublbl">出庫を登録</span>
+    </button>
+  </div>
+</div>
+
+<!-- ===== DETAIL ===== -->
+<div class="screen" id="s-detail">
+  <div class="dhdr">
+    <div class="dcode" id="dc"></div>
+    <div class="dname" id="dn"></div>
+    <div class="dmodel" id="dm"></div>
+    <div class="drev" id="drev"></div>
+    <div class="dsbig">
+      <div class="sblock">
+        <div class="slbl">現在の在庫数</div>
+        <div class="sval" id="ds"></div>
+      </div>
+    </div>
+  </div>
+  <div id="dal"></div>
+  <div class="dsec">
+    <div class="stitle">製品情報</div>
+    <div class="irow"><span class="ilbl">保管場所</span><span class="ival" id="dloc"></span></div>
+    <div class="irow">
+      <span class="ilbl">基準在庫</span>
+      <span class="ival">
+        <span id="dbase"></span>
+        <button class="edit-btn" onclick="toggleEdit('base')">変更</button>
+      </span>
+    </div>
+    <div class="inline-edit" id="edit-base">
+      <input type="number" id="ei-base" min="0" max="9999">
+      <button class="isave" onclick="saveEdit('base')">保存</button>
+      <button class="icancel2" onclick="toggleEdit('base')">×</button>
+    </div>
+    <div class="irow">
+      <span class="ilbl">改定番号</span>
+      <span class="ival">
+        <span id="drevrow"></span>
+        <button class="edit-btn" onclick="toggleEdit('rev')">変更</button>
+      </span>
+    </div>
+    <div class="inline-edit" id="edit-rev">
+      <input type="text" id="ei-rev" maxlength="20" placeholder="例: Rev.3">
+      <button class="isave" onclick="saveEdit('rev')">保存</button>
+      <button class="icancel2" onclick="toggleEdit('rev')">×</button>
+    </div>
+    <div class="irow"><span class="ilbl">機種</span><span class="ival" id="dmod"></span></div>
+  </div>
+  <div class="dsec">
+    <div class="stitle">入出庫履歴</div>
+    <div id="dhist"></div>
+  </div>
+  <div class="arow">
+    <button class="abtn recv" onclick="openScan('in')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>入庫
+    </button>
+    <button class="abtn ship" onclick="openScan('out')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>出庫
+    </button>
+  </div>
+</div>
+
+<!-- ===== SUMMARY ===== -->
+<div class="screen" id="s-summary">
+  <div class="sgrid">
+    <div class="scard"><div class="sl">総製品数</div><div class="sv" id="stotal" style="color:var(--text)"></div></div>
+    <div class="scard"><div class="sl">要発注</div><div class="sv danger" id="salert"></div></div>
+    <div class="scard"><div class="sl">注意</div><div class="sv warn" id="swarn"></div></div>
+    <div class="scard"><div class="sl">正常</div><div class="sv ok" id="sok"></div></div>
+  </div>
+  <div style="padding:0 14px" id="alist"></div>
+  <div class="dsec" style="margin-top:8px">
+    <div class="stitle">本日の出入庫</div>
+    <div id="tlog"></div>
+  </div>
+</div>
+
+<!-- ===== ADMIN ===== -->
+<div class="screen" id="s-admin">
+  <div class="admin-sec">
+    <div class="admin-card">
+      <div class="acard-head"><span>従業員管理</span><button onclick="openAddStaff()">＋ 追加</button></div>
+      <div id="staffList"></div>
+    </div>
+    <div class="admin-card">
+      <div class="acard-head"><span>製品・注意フラグ管理</span></div>
+      <div id="prodAdminList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="botnav hidden" id="bnav">
+  <button class="active" onclick="tab('list',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>一覧
+  </button>
+  <button onclick="tab('scan',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M17 17v3h3M14 17h.01M20 14h.01"/></svg>スキャン
+  </button>
+  <button onclick="tab('summary',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>状況
+  </button>
+  <button onclick="tab('admin',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>管理
+  </button>
+</div>
+
+<!-- POPUP: 発注アラート -->
+<div class="overlay" id="ov-order">
+  <div class="popup">
+    <div class="pop-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+    <div class="pop-title">発注が必要です</div>
+    <div class="pop-sub" id="pop-order-sub"></div>
+    <div class="pop-nums" id="pop-order-nums"></div>
+    <button class="pbtn ok" onclick="closePopup('ov-order',true)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>確認しました
+    </button>
+    <button class="pbtn sec" onclick="closePopup('ov-order',true)">後で確認する</button>
+  </div>
+</div>
+
+<!-- POPUP: 久しぶり出庫 -->
+<div class="overlay" id="ov-longtime">
+  <div class="popup">
+    <div class="pop-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+    <div class="pop-title">出荷前に仕様を確認してください</div>
+    <div class="pop-sub" id="pop-lt-sub"></div>
+    <button class="pbtn orange" onclick="closePopup('ov-longtime',false,true)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>確認しました・続ける
+    </button>
+    <button class="pbtn sec" onclick="cancelSubmit()">キャンセル</button>
+  </div>
+</div>
+
+<!-- POPUP: 管理者フラグ -->
+<div class="overlay" id="ov-flag">
+  <div class="popup">
+    <div class="pop-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></div>
+    <div class="pop-title">出荷前に担当者へ確認が必要です</div>
+    <div class="pop-sub" id="pop-flag-sub"></div>
+    <button class="pbtn ok" onclick="closePopup('ov-flag',false,false,true)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>対応完了（以降表示しない）
+    </button>
+    <button class="pbtn sec" onclick="closePopup('ov-flag',false,false,false)">引き続き次回も表示する</button>
+  </div>
+</div>
+
+<!-- POPUP: OCR照合結果 -->
+<div class="overlay" id="ov-ocr">
+  <div class="popup">
+    <div class="pop-icon" id="ocr-icon"></div>
+    <div class="pop-title" id="ocr-title"></div>
+    <div class="pop-sub" id="ocr-sub"></div>
+    <div id="ocr-detail" style="background:var(--bg);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:13px;line-height:1.8"></div>
+    <button class="pbtn ok" id="ocr-ok-btn" onclick="closePopup('ov-ocr')">確認しました</button>
+    <button class="pbtn sec" onclick="closePopup('ov-ocr')">閉じる</button>
+  </div>
+</div>
+
+<!-- MODAL: ログアウト確認 -->
+<div class="modal-ov" id="m-logout">
+  <div class="modal">
+    <h3>ログアウト</h3>
+    <p style="font-size:14px;color:var(--text2);margin-bottom:18px;line-height:1.6">作業を終了してログアウトしますか？</p>
+    <div class="mbtns">
+      <button class="mcancel" onclick="closeModal('m-logout')">キャンセル</button>
+      <button class="mok" style="background:var(--cd)" onclick="doLogout()">ログアウト</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 従業員追加 -->
+<div class="modal-ov" id="m-staff">
+  <div class="modal">
+    <h3>従業員を追加</h3>
+    <div class="mfgrp"><label class="mflbl">名前</label><input class="mfinput" id="mn" placeholder="例: 田中 太郎" maxlength="20"></div>
+    <div class="mfgrp"><label class="mflbl">PINコード（4桁）</label><input class="mfinput" id="mp" type="tel" placeholder="0000" maxlength="4" pattern="[0-9]*" inputmode="numeric"></div>
+    <div class="mfgrp"><label class="mflbl">権限</label>
+      <div class="role-row">
+        <button class="rbtn active" id="r-worker" onclick="setRole('worker')">作業者</button>
+        <button class="rbtn" id="r-admin" onclick="setRole('admin')">管理者</button>
+      </div>
+    </div>
+    <div class="mfgrp"><label class="mflbl">アイコンカラー</label><div class="color-row" id="colorRow"></div></div>
+    <div class="mbtns">
+      <button class="mcancel" onclick="closeModal('m-staff')">キャンセル</button>
+      <button class="mok" onclick="addStaff()">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 管理者フラグ設定 -->
+<div class="modal-ov" id="m-flag">
+  <div class="modal">
+    <h3 id="mflag-title">注意フラグを設定</h3>
+    <div class="mfgrp"><label class="mflbl">注意メッセージ</label>
+      <textarea class="mfinput" id="mflag-msg" rows="3" placeholder="例: 改定変更有・現品票の改定番号を必ず確認" style="resize:none"></textarea>
+    </div>
+    <div class="mbtns">
+      <button class="mcancel" onclick="closeModal('m-flag')">キャンセル</button>
+      <button class="mok" onclick="saveFlag()">設定する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ===== DATA ===== */
+const COLORS=['#185FA5','#3B6D11','#BA7517','#A32D2D','#6B3FA0','#0F6E56','#993C1D'];
+let newColor=COLORS[0],newRole='worker',flagTargetCode=null;
+
+let staff=[
+  {id:1,name:'山田 太郎',pin:'1111',role:'admin',color:'#185FA5'},
+  {id:2,name:'鈴木 花子',pin:'2222',role:'worker',color:'#3B6D11'},
+  {id:3,name:'田中 一郎',pin:'3333',role:'worker',color:'#BA7517'},
+];
+
+let prods=[
+  {code:'127407M01',name:'セパレータA',model:'CM-200M',location:'棚A-1 前列下段',stock:8,base:15,unit:'個',rev:'Rev.2',flag:null,flagDone:false},
+  {code:'127407M02',name:'セパレータB',model:'CM-200M',location:'棚A-2 前列中段',stock:3,base:15,unit:'個',rev:'Rev.1',flag:'改定変更有・現品票の改定番号を必ず確認してください',flagDone:false},
+  {code:'127407M03',name:'セパレータC',model:'CM-300',location:'棚B-1 奥列上段',stock:45,base:10,unit:'個',rev:'Rev.3',flag:null,flagDone:false},
+  {code:'205310K01',name:'ガスケット 大',model:'PM-100',location:'棚C-3 前列下段',stock:12,base:20,unit:'個',rev:'Rev.1',flag:null,flagDone:false},
+  {code:'205310K02',name:'ガスケット 小',model:'PM-100',location:'棚C-4 前列下段',stock:28,base:10,unit:'個',rev:'Rev.2',flag:null,flagDone:false},
+  {code:'315002B01',name:'ボルトセット M8',model:'汎用',location:'棚D-2 中列中段',stock:5,base:30,unit:'袋',rev:'Rev.1',flag:null,flagDone:false},
+  {code:'315002B02',name:'ボルトセット M10',model:'汎用',location:'棚D-3 中列中段',stock:18,base:10,unit:'袋',rev:'Rev.1',flag:null,flagDone:false},
+  {code:'401105S01',name:'シールリング',model:'KX-500',location:'テントA 棚1',stock:60,base:20,unit:'個',rev:'Rev.4',flag:null,flagDone:false},
+];
+
+// 最終出庫日（デモ用: 40日前のものを混ぜる）
+const today=new Date();
+function daysAgo(d){const dt=new Date(today);dt.setDate(dt.getDate()-d);return dt;}
+const hist={};
+prods.forEach((p,i)=>{
+  const lastDate=i%3===0?daysAgo(42):daysAgo(5); // 127407M01, 205310K01 は40日以上前
+  const ds=`${(lastDate.getMonth()+1).toString().padStart(2,'0')}/${lastDate.getDate().toString().padStart(2,'0')} 10:30`;
+  hist[p.code]=[
+    {t:'out',q:6,d:ds,order:'E1S2150',person:'山田 太郎',delivery:'2026/06/10 PM'},
+    {t:'in',q:20,d:`06/05 09:15`,order:'',person:'鈴木 花子',delivery:''},
+    {t:'out',q:4,d:`06/04 11:00`,order:'E1S2148',person:'田中 一郎',delivery:'2026/06/08 AM'},
+  ];
+});
+
+/* ===== STATE ===== */
+let cu=null,cf='all',ci=null,seg='out',qstr='1',prevScr='list';
+let pinBuf='',selStaff=null;
+let pendingDelivery={date:'',ampm:'AM'};
+let submitPending=false,ltConfirmed=false,flagConfirmed=false;
+
+/* ===== UTILS ===== */
+function status(p){return p.stock<p.base*0.5?'danger':p.stock<p.base?'warn':'ok'}
+function initials(n){const p=n.trim().split(/\s+/);return p.length>=2?p[0][0]+p[1][0]:n.slice(0,2)}
+function renderStaffGrid(){
+  const el=document.getElementById('staffGrid');
+  if(!el)return;
+  el.innerHTML=staff.map(s=>`
+    <button class="sbtn" id="sb-${s.id}" onclick="selStaffFn(${s.id})">
+      <div class="av" style="background:${s.color}">${initials(s.name)}</div>
+      <div class="sn">${s.name}</div>
+      <div class="sr">${s.role==='admin'?'管理者':'作業者'}</div>
+    </button>`).join('');
+}
+function daysSinceLastOut(code){
+  const h=hist[code]||[];
+  const last=h.find(e=>e.t==='out');
+  if(!last)return 999;
+  const [md,time]=last.d.split(' ');
+  const [m,d]=md.split('/');
+  const dt=new Date(today.getFullYear(),parseInt(m)-1,parseInt(d));
+  return Math.floor((today-dt)/(1000*60*60*24));
+}
+
+/* ===== LOGIN ===== */
+function renderStaffGrid(){
+  document.getElementById('staffGrid').innerHTML=staff.map(s=>`
+    <button class="sbtn" id="sb-${s.id}" onclick="selStaffFn(${s.id})">
+      <div class="av" style="background:${s.color}">${initials(s.name)}</div>
+      <div class="sn">${s.name}</div>
+      <div class="sr">${s.role==='admin'?'管理者':'作業者'}</div>
+    </button>`).join('');
+}
+
+function selStaffFn(id){
+  selStaff=staff.find(s=>s.id===id);
+  document.querySelectorAll('.sbtn').forEach(b=>b.classList.remove('sel'));
+  document.getElementById('sb-'+id).classList.add('sel');
+  pinBuf='';
+  document.getElementById('lerr').classList.remove('show');
+  document.getElementById('pinLbl').textContent=selStaff.name+' のPINを入力';
+  document.getElementById('pinWrap').style.display='block';
+  updateDots();
+}
+
+function pk(k){
+  if(!selStaff||pinBuf.length>=4)return;
+  pinBuf+=k;updateDots();
+  if(pinBuf.length===4)setTimeout(checkPin,150);
+}
+function pdel(){pinBuf=pinBuf.slice(0,-1);updateDots();}
+function updateDots(){
+  for(let i=0;i<4;i++){
+    const d=document.getElementById('pd'+i);
+    d.classList.toggle('on',i<pinBuf.length);
+    d.classList.remove('err');
+  }
+}
+function checkPin(){
+  if(pinBuf===selStaff.pin){
+    cu=selStaff;
+    document.getElementById('uname').textContent=cu.name;
+    document.getElementById('uchip').classList.remove('hidden');
+    document.getElementById('bnav').classList.remove('hidden');
+    showScr('s-list');filt();
+  } else {
+    for(let i=0;i<4;i++)document.getElementById('pd'+i).classList.add('err');
+    document.getElementById('lerr').classList.add('show');
+    setTimeout(()=>{pinBuf='';updateDots();},800);
+  }
+}
+function openLogout(){document.getElementById('m-logout').classList.add('show')}
+function doLogout(){
+  cu=null;selStaff=null;pinBuf='';
+  closeModal('m-logout');
+  document.getElementById('uchip').classList.add('hidden');
+  document.getElementById('bnav').classList.add('hidden');
+  document.getElementById('bkBtn').classList.add('hidden');
+  document.getElementById('ttl').textContent='在庫管理';
+  document.getElementById('pinWrap').style.display='none';
+  document.querySelectorAll('.sbtn').forEach(b=>b.classList.remove('sel'));
+  showScr('s-login');
+  renderStaffGrid();
+}
+
+/* ===== LIST ===== */
+function renderList(items){
+  const el=document.getElementById('ilist');
+  if(!items.length){el.innerHTML='<div class="empty-state">該当する製品がありません</div>';return}
+  el.innerHTML=items.map(p=>{
+    const s=status(p);
+    const hasflag=p.flag&&!p.flagDone;
+    const old=daysSinceLastOut(p.code)>=30;
+    return`<div class="icard" onclick="openDetail('${p.code}')">
+      <div class="iico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
+      <div class="iinfo">
+        <div class="icode">${p.code}</div>
+        <div class="iname">${p.name}${hasflag?'<span class="flag-dot" title="管理者フラグあり"></span>':''}</div>
+        <div class="irev">改定: ${p.rev||'—'}${old?' 　⏱ 30日以上未出庫':''}</div>
+        <div class="iloc">${p.location}</div>
+      </div>
+      <div class="iright">
+        <div class="snum ${s}">${p.stock}</div>
+        <div class="sunit">${p.unit}</div>
+        <button class="qship" onclick="event.stopPropagation();quickShip('${p.code}')">出庫</button>
+      </div>
+    </div>`}).join('');
+}
+
+function filt(){
+  const q=document.getElementById('sinput').value.toLowerCase();
+  let r=prods.filter(p=>p.code.toLowerCase().includes(q)||p.name.includes(q));
+  if(cf==='danger')r=r.filter(p=>status(p)==='danger');
+  else if(cf==='warn')r=r.filter(p=>status(p)==='warn');
+  else if(cf==='ok')r=r.filter(p=>status(p)==='ok');
+  renderList(r);
+}
+function setF(f,el){cf=f;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');filt();}
+
+/* ===== DETAIL ===== */
+function openDetail(code){
+  ci=prods.find(p=>p.code===code);if(!ci)return;
+  prevScr='list';
+  document.getElementById('dc').textContent=ci.code;
+  document.getElementById('dn').textContent=ci.name;
+  document.getElementById('dm').textContent=ci.model;
+  document.getElementById('drev').textContent='改定番号: '+( ci.rev||'—');
+  const sn=document.getElementById('ds');
+  sn.textContent=ci.stock;
+  const s=status(ci);
+  sn.style.color=s==='danger'?'var(--cd)':s==='warn'?'var(--cw)':'var(--cs)';
+  document.getElementById('dloc').textContent=ci.location;
+  document.getElementById('dbase').textContent=ci.base+' '+ci.unit;
+  document.getElementById('drevrow').textContent=ci.rev||'—';
+  document.getElementById('dmod').textContent=ci.model;
+  const al=document.getElementById('dal');
+  al.innerHTML=s==='danger'?
+    `<div class="abanner danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>在庫が基準を大幅に下回っています。至急発注してください。</div>`:
+    s==='warn'?`<div class="abanner warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>在庫が基準を下回っています。発注を検討してください。</div>`:'';
+  document.getElementById('dhist').innerHTML=(hist[code]||[]).map(h=>`
+    <div class="hrow">
+      <span class="hbadge ${h.t}">${h.t==='out'?'出庫':'入庫'}</span>
+      <div class="hinfo">
+        <div class="hperson">${h.person}</div>
+        <div class="horder">${h.order||'—'}${h.delivery?' / 納期:'+h.delivery:''}</div>
+      </div>
+      <span class="hqty">${h.q}${ci.unit}</span>
+      <span class="hdate">${h.d}</span>
+    </div>`).join('');
+  document.querySelectorAll('.inline-edit').forEach(e=>e.classList.remove('show'));
+  showScr('s-detail');
+  document.getElementById('ttl').textContent=ci.name;
+  document.getElementById('bkBtn').classList.remove('hidden');
+  document.getElementById('bnav').style.display='none';
+}
+
+/* INLINE EDIT */
+function toggleEdit(type){
+  const el=document.getElementById('edit-'+type);
+  const showing=el.classList.contains('show');
+  document.querySelectorAll('.inline-edit').forEach(e=>e.classList.remove('show'));
+  if(!showing){
+    el.classList.add('show');
+    if(type==='base'){document.getElementById('ei-base').value=ci.base;}
+    else{document.getElementById('ei-rev').value=ci.rev||'';}
+  }
+}
+function saveEdit(type){
+  if(type==='base'){
+    const v=parseInt(document.getElementById('ei-base').value);
+    if(isNaN(v)||v<0){showToast('正しい数値を入力してください','w');return;}
+    ci.base=v;document.getElementById('dbase').textContent=v+' '+ci.unit;
+  } else {
+    const v=document.getElementById('ei-rev').value.trim();
+    ci.rev=v;
+    document.getElementById('drevrow').textContent=v||'—';
+    document.getElementById('drev').textContent='改定番号: '+(v||'—');
+  }
+  document.getElementById('edit-'+type).classList.remove('show');
+  showToast('保存しました','ok');
+  filt();
+}
+
+/* ===== SCAN ===== */
+function openScan(type){
+  prevScr='detail';
+  setupScan(ci,type);
+  showScr('s-scan');
+  document.getElementById('ttl').textContent=type==='out'?'出庫登録':'入庫登録';
+  document.getElementById('bkBtn').classList.remove('hidden');
+  document.getElementById('bnav').style.display='none';
+}
+function quickShip(code){
+  ci=prods.find(p=>p.code===code);
+  prevScr='list';
+  setupScan(ci,'out');
+  showScr('s-scan');
+  document.getElementById('ttl').textContent='出庫登録';
+  document.getElementById('bkBtn').classList.remove('hidden');
+  document.getElementById('bnav').style.display='none';
+}
+function setupScan(item,type){
+  qstr='1';document.getElementById('qnum').textContent='1';
+  setSeg(type);
+  document.getElementById('forder').value='';
+  ltConfirmed=false;flagConfirmed=false;submitPending=false;
+  // 納期を引き継ぎ
+  document.getElementById('fdate').value=pendingDelivery.date;
+  document.getElementById('fampm').value=pendingDelivery.ampm;
+  if(item){
+    document.getElementById('fc').value=item.code;
+    document.getElementById('fn').value=item.name+' / '+item.location;
+    const sr=document.getElementById('sres');
+    sr.classList.add('show');
+    document.getElementById('sresText').textContent=item.code+' — '+item.name+' (改定:'+item.rev+')';
+  } else {
+    document.getElementById('fc').value='';document.getElementById('fn').value='';
+    document.getElementById('sres').classList.remove('show');
+  }
+}
+function setSeg(t){
+  seg=t;
+  document.getElementById('seg-out').className='segb out'+(t==='out'?' active':'');
+  document.getElementById('seg-in').className='segb in'+(t==='in'?' active':'');
+  document.getElementById('subbtn').className='subbtn '+(t==='out'?'out':'in');
+  document.getElementById('sublbl').textContent=t==='out'?'出庫を登録':'入庫を登録';
+  document.getElementById('orderGrp').style.opacity=t==='out'?'1':'0.5';
+}
+function doScan(){
+  if(!ci){
+    const p=prods[Math.floor(Math.random()*prods.length)];
+    ci=p;
+    document.getElementById('fc').value=p.code;
+    document.getElementById('fn').value=p.name+' / '+p.location;
+    const sr=document.getElementById('sres');
+    sr.classList.add('show');
+    document.getElementById('sresText').textContent='QR読取完了 — '+p.code+' '+p.name+' (改定:'+p.rev+')';
+  }
+}
+
+/* OCR照合デモ */
+function doOCR(){
+  if(!ci){showToast('先に製品をスキャンしてください','w');return;}
+  // デモ: ランダムで一致・不一致を出す
+  const mismatch=Math.random()>0.5;
+  const ocrRev=mismatch?'Rev.99':ci.rev;
+  const ocrName=ci.name;
+  const ocrCode=ci.code;
+  const icon=document.getElementById('ocr-icon');
+  if(!mismatch){
+    icon.className='pop-icon';icon.style.background='var(--csl)';icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="var(--cs)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+    document.getElementById('ocr-title').textContent='現品票と一致しています';
+    document.getElementById('ocr-sub').textContent='スキャンした現品票の情報はシステムのデータと一致しています。';
+    document.getElementById('ocr-detail').innerHTML=`部品コード: <strong>${ocrCode}</strong><br>品名: <strong>${ocrName}</strong><br>改定番号: <strong>${ocrRev}</strong>`;
+    document.getElementById('ocr-ok-btn').className='pbtn ok';
+  } else {
+    icon.className='pop-icon red';icon.style.background='';icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="var(--cd)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    document.getElementById('ocr-title').textContent='⚠️ 現品票と差異があります';
+    document.getElementById('ocr-sub').textContent='以下の項目が一致していません。出荷前に必ず確認してください。';
+    document.getElementById('ocr-detail').innerHTML=`改定番号: システム <strong style="color:var(--cs)">${ci.rev}</strong> ≠ 現品票 <strong style="color:var(--cd)">${ocrRev}</strong>`;
+    document.getElementById('ocr-ok-btn').className='pbtn red';
+  }
+  document.getElementById('ov-ocr').classList.add('show');
+}
+
+/* ===== TENKEY ===== */
+function tp(k){
+  if(qstr==='1'||qstr==='0')qstr=k==='0'?'1':k;
+  else if(qstr.length<4)qstr+=k;
+  document.getElementById('qnum').textContent=qstr;
+}
+function td(){qstr=qstr.length>1?qstr.slice(0,-1):'1';document.getElementById('qnum').textContent=qstr;}
+function tc(){qstr='1';document.getElementById('qnum').textContent='1';}
+
+/* ===== SUBMIT ===== */
+function submitForm(){
+  const code=document.getElementById('fc').value;
+  if(!code){showToast('製品をスキャンしてください','w');return;}
+  const qty=parseInt(qstr)||1;
+  const item=prods.find(p=>p.code===code);if(!item)return;
+  if(seg==='out'&&item.stock<qty){showToast('在庫が不足しています！','e');return;}
+  const order=document.getElementById('forder').value.trim();
+  if(seg==='out'&&!order){showToast('オーダー番号を入力してください','w');return;}
+  // 納期を記憶
+  pendingDelivery={date:document.getElementById('fdate').value,ampm:document.getElementById('fampm').value};
+
+  // チェック順: 久しぶり → フラグ → 登録
+  if(seg==='out'&&!ltConfirmed&&daysSinceLastOut(code)>=30){
+    submitPending=true;
+    const days=daysSinceLastOut(code);
+    document.getElementById('pop-lt-sub').textContent=`「${item.name}」の前回出庫から ${days} 日が経過しています。\n出荷前に改定番号・仕様を現品票と照合してください。\n\n改定番号: ${item.rev||'—'}`;
+    document.getElementById('ov-longtime').classList.add('show');
+    return;
+  }
+  if(seg==='out'&&!flagConfirmed&&item.flag&&!item.flagDone){
+    submitPending=true;
+    document.getElementById('pop-flag-sub').textContent=item.flag;
+    document.getElementById('ov-flag').classList.add('show');
+    return;
+  }
+  doRegister(item,qty,order);
+}
+
+function doRegister(item,qty,order){
+  const delivStr=pendingDelivery.date?(pendingDelivery.date+' '+pendingDelivery.ampm):'';
+  seg==='out'?item.stock-=qty:item.stock+=qty;
+  const now=new Date();
+  const ds=`${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+  hist[item.code].unshift({t:seg,q:qty,d:ds,order,person:cu?cu.name:'不明',delivery:delivStr});
+  showToast(seg==='out'?`出庫完了 ${qty}${item.unit}`:`入庫完了 ${qty}${item.unit}`,'ok');
+  if(seg==='out'&&item.stock<item.base){
+    setTimeout(()=>showOrderPopup(item),700);
+  } else {
+    setTimeout(()=>goBack(),900);
+  }
+}
+
+function cancelSubmit(){
+  submitPending=false;
+  document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('show'));
+}
+
+/* ===== POPUPS ===== */
+function showOrderPopup(item){
+  const s=status(item);
+  document.getElementById('pop-order-sub').textContent=`「${item.name}」の在庫が基準を下回りました。\n担当者に発注依頼を出してください。`;
+  document.getElementById('pop-order-nums').innerHTML=`
+    <div class="pnum"><div class="pv ${s}">${item.stock}</div><div class="pl">現在の在庫</div></div>
+    <div class="pdiv">/</div>
+    <div class="pnum"><div class="pv ok">${item.base}</div><div class="pl">基準在庫</div></div>`;
+  document.getElementById('ov-order').classList.add('show');
+}
+
+function closePopup(id,doBack,isLt,isFlagDone){
+  document.getElementById(id).classList.remove('show');
+  if(isLt){
+    ltConfirmed=true;
+    if(submitPending){submitPending=false;submitForm();}
+    return;
+  }
+  if(isFlagDone!==undefined){
+    if(isFlagDone&&ci)ci.flagDone=true;
+    flagConfirmed=true;
+    if(submitPending){submitPending=false;submitForm();}
+    return;
+  }
+  if(doBack)goBack();
+}
+
+/* ===== SUMMARY ===== */
+function showSummary(){
+  const al=prods.filter(p=>status(p)==='danger');
+  const wn=prods.filter(p=>status(p)==='warn');
+  const ok=prods.filter(p=>status(p)==='ok');
+  document.getElementById('stotal').textContent=prods.length;
+  document.getElementById('salert').textContent=al.length;
+  document.getElementById('swarn').textContent=wn.length;
+  document.getElementById('sok').textContent=ok.length;
+  const flagItems=prods.filter(p=>p.flag&&!p.flagDone);
+  const ltItems=prods.filter(p=>daysSinceLastOut(p.code)>=30);
+  document.getElementById('alist').innerHTML=
+    [...al.map(p=>({p,t:'danger',msg:`${p.stock}${p.unit} / 基準${p.base}${p.unit} — 至急発注`})),
+     ...wn.map(p=>({p,t:'warn',msg:`${p.stock}${p.unit} / 基準${p.base}${p.unit} — 発注検討`})),
+     ...flagItems.filter(p=>!al.includes(p)&&!wn.includes(p)).map(p=>({p,t:'purple',msg:'管理者フラグあり: '+p.flag.slice(0,30)})),
+     ...ltItems.filter(p=>!al.includes(p)&&!wn.includes(p)&&!flagItems.includes(p)).map(p=>({p,t:'warn',msg:`前回出庫から${daysSinceLastOut(p.code)}日経過 — 出荷時に改定確認`}))
+    ].map(({p,t,msg})=>`
+    <div class="aitem ${t}" onclick="openDetail('${p.code}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <div><div class="an">${p.name}</div><div class="as">${msg}</div></div>
+    </div>`).join('');
+  const now=new Date();
+  const todayStr=`${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')}`;
+  const entries=[];
+  prods.forEach(p=>(hist[p.code]||[]).forEach(h=>{if(h.d.startsWith(todayStr))entries.push({...h,pn:p.name,pc:p.code,u:p.unit});}));
+  document.getElementById('tlog').innerHTML=entries.length?entries.slice(0,8).map(h=>`
+    <div class="hrow" onclick="openDetail('${h.pc}')">
+      <span class="hbadge ${h.t}">${h.t==='out'?'出庫':'入庫'}</span>
+      <div class="hinfo"><div class="hperson">${h.person}</div><div class="horder">${h.pn} ${h.order?'/ '+h.order:''}</div></div>
+      <span class="hqty">${h.q}${h.u}</span>
+    </div>`).join(''):'<div class="empty-state" style="padding:14px 0">本日の履歴はありません</div>';
+}
+
+/* ===== ADMIN ===== */
+function renderAdmin(){
+  document.getElementById('staffList').innerHTML=staff.map(s=>`
+    <div class="staff-row">
+      <div class="av" style="background:${s.color}">${initials(s.name)}</div>
+      <div class="sinfo"><div class="sname2">${s.name}</div><div class="srole2">${s.role==='admin'?'管理者':'作業者'} &nbsp;PIN: ${s.pin}</div></div>
+      ${s.id!==1?`<button class="sdel" onclick="delStaff(${s.id})">削除</button>`:''}
+    </div>`).join('');
+  document.getElementById('prodAdminList').innerHTML=prods.map(p=>`
+    <div class="prod-admin-row">
+      <span class="pan">${p.name} <span style="font-size:11px;color:var(--text3)">${p.rev||''}</span></span>
+      <span class="pst snum ${status(p)}" style="font-size:13px">${p.stock}</span>
+      <span class="pbase">/${p.base}</span>
+      <button class="pflag-btn ${p.flag&&!p.flagDone?'set':'unset'}" onclick="openFlagModal('${p.code}')">
+        ${p.flag&&!p.flagDone?'⚑ フラグ中':'フラグ設定'}
+      </button>
+    </div>`).join('');
+}
+
+function delStaff(id){
+  if(!confirm('削除しますか？'))return;
+  staff=staff.filter(s=>s.id!==id);
+  renderAdmin();renderStaffGrid();
+}
+
+let _nRole='worker',_nColor=COLORS[0];
+function openAddStaff(){
+  document.getElementById('mn').value='';document.getElementById('mp').value='';
+  _nRole='worker';_nColor=COLORS[0];
+  document.getElementById('r-worker').classList.add('active');
+  document.getElementById('r-admin').classList.remove('active');
+  renderColorRow();
+  document.getElementById('m-staff').classList.add('show');
+}
+function renderColorRow(){
+  document.getElementById('colorRow').innerHTML=COLORS.map(c=>`
+    <div class="col-opt${c===_nColor?' sel':''}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('');
+}
+function pickColor(c){_nColor=c;renderColorRow();}
+function setRole(r){
+  _nRole=r;
+  document.getElementById('r-worker').classList.toggle('active',r==='worker');
+  document.getElementById('r-admin').classList.toggle('active',r==='admin');
+}
+function addStaff(){
+  const name=document.getElementById('mn').value.trim();
+  const pin=document.getElementById('mp').value.trim();
+  if(!name){showToast('名前を入力してください','w');return;}
+  if(!/^\d{4}$/.test(pin)){showToast('PINは4桁の数字です','w');return;}
+  staff.push({id:Math.max(...staff.map(s=>s.id))+1,name,pin,role:_nRole,color:_nColor});
+  closeModal('m-staff');renderAdmin();renderStaffGrid();
+  showToast(name+'を追加しました','ok');
+}
+
+function openFlagModal(code){
+  flagTargetCode=code;
+  const p=prods.find(x=>x.code===code);
+  document.getElementById('mflag-title').textContent='注意フラグ設定: '+p.name;
+  document.getElementById('mflag-msg').value=p.flag||'';
+  document.getElementById('m-flag').classList.add('show');
+}
+function saveFlag(){
+  const msg=document.getElementById('mflag-msg').value.trim();
+  const p=prods.find(x=>x.code===flagTargetCode);
+  if(p){p.flag=msg||null;p.flagDone=false;}
+  closeModal('m-flag');renderAdmin();filt();
+  showToast(msg?'フラグを設定しました':'フラグを解除しました','ok');
+}
+
+/* ===== NAV ===== */
+function showScr(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));document.getElementById(id).classList.add('show');}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+
+function tab(t,btn){
+  document.querySelectorAll('.botnav button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  document.getElementById('bkBtn').classList.add('hidden');
+  document.getElementById('bnav').style.display='flex';
+  document.getElementById('ttl').textContent='在庫管理';
+  ci=null;
+  if(t==='list'){showScr('s-list');filt();}
+  else if(t==='scan'){document.getElementById('ttl').textContent='スキャン出庫';setupScan(null,'out');showScr('s-scan');}
+  else if(t==='summary'){document.getElementById('ttl').textContent='在庫状況';showSummary();showScr('s-summary');}
+  else if(t==='admin'){
+    if(!cu||cu.role!=='admin'){showToast('管理者のみアクセスできます','w');return;}
+    document.getElementById('ttl').textContent='管理';renderAdmin();showScr('s-admin');
+  }
+}
+
+function goBack(){
+  document.getElementById('bkBtn').classList.add('hidden');
+  document.getElementById('bnav').style.display='flex';
+  document.getElementById('ttl').textContent='在庫管理';
+  if(prevScr==='detail'&&ci){openDetail(ci.code);return;}
+  ci=null;showScr('s-list');filt();
+  document.querySelectorAll('.botnav button').forEach((b,i)=>b.classList.toggle('active',i===0));
+}
+
+function showToast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+type;
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* ===== INIT ===== */
+function init(){renderStaffGrid();}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
+</script>
+</body>
+</html>
